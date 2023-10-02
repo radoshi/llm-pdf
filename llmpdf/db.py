@@ -41,11 +41,16 @@ class Database:
         except ValueError:
             pass
 
-    def list_(self, collection_name: str | None = None):
+    def list(self, collection_name: str | None = None, limit: int = 10) -> list[str]:
         """List collections or documents in the collection."""
         if collection_name is None:
             collections = self.db_client.list_collections()
             return [c.name for c in collections]
         else:
             coll = self.db_client.get_collection(collection_name)
-            return coll.peek(limit=100)["documents"]
+            return coll.peek(limit=limit)["documents"] or []
+
+    def count(self, collection_name: str):
+        """Count the number of documents in the collection."""
+        coll = self.db_client.get_collection(collection_name)
+        return coll.count()

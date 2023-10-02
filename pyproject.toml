@@ -25,6 +25,7 @@ pydantic = "^2.3.0"
 pydantic-settings = "^2.0.3"
 chromadb = "^0.4.13"
 pypdf = "^3.16.2"
+tiktoken = "^0.5.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"

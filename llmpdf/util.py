@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     model: str = "gpt-4"
     embedding_model: str = "text-embedding-ada-002"
-    temperature: float = 0.1
-    max_tokens: int = 1000
+    temperature: float = 0.0
+    max_tokens: int = 500
 
     chroma_dir: Path = CHROMA_DIR
     base_dir: Path = BASE_DIR
