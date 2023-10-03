@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "llmpdf"
-version = "0.1.0"
+name = "llm-pdf-chat"
+version = "0.3.0"
 description = "Talk to your PDFs using an LLM."
 authors = ["Rushabh Doshi <radoshi+pypi@gmail.com>"]
 license = "MIT"

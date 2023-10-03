@@ -31,9 +31,8 @@ def expand_globs(pdfs: list[str]) -> list[str]:
 
 
 @click.group()
-@click.option("-4", "--gpt-4", is_flag=True, default=False, help="Use GPT-4.")
 @click.version_option(__version__)
-def main(gpt_4: bool):
+def main():
     pass
 
 
