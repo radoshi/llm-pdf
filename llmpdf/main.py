@@ -8,7 +8,7 @@ from rich.progress import track
 from rich.prompt import Confirm, Prompt
 
 from llmpdf import __version__, util
-from llmpdf.ai import Summarizer
+from llmpdf.ai import ChatBot, Summarizer
 from llmpdf.db import Database
 from llmpdf.download import Arxiv
 
@@ -167,24 +167,37 @@ def arxiv(
                 database.index(collection_name, file_path)
 
 
-# @main.command()
-# @click.option(
-#     "-c",
-#     "--collection",
-#     "collection_name",
-#     type=str,
-#     required=True,
-#     help="Name of the collection.",
-# )
-# def chat(collection_name: str):
-#     """Chat with your PDFs."""
-
-#     database = Database()
-
-#     while True:
-#         query = click.prompt("Query")
-#         # results = database.chat(collection_name, query)
-#         # console.print(results)
+@main.command()
+@click.option(
+    "-c",
+    "--collection",
+    "collection_name",
+    type=str,
+    required=True,
+    help="Name of the collection.",
+)
+def chat(collection_name: str):
+    """Chat with your PDFs."""
+    console.print(f"Chatting with {collection_name}.")
+    console.print("Type 'exit' to exit.")
+    console.print("Type 'new' to start a new chat.")
+    chatbot = ChatBot(collection_name)
+    while True:
+        query = Prompt.ask(
+            "Question",
+        )
+        if query == "exit":
+            return
+        elif query == "new":
+            console.print("Starting a new chat.")
+            chatbot = ChatBot(collection_name)
+            continue
+        else:
+            with console.status("[bold green] Asking 🤖..."):
+                response, cost = chatbot.chat(query)
+            console.print(response)
+            console.print(f"Cost: ${cost:.2f}")
+            console.print(f"Total Cost: ${chatbot.cost:.2f}")
 
 
 @main.command()

@@ -1,8 +1,18 @@
+from typing import List
+
 import chromadb
 from chromadb.utils import embedding_functions
+from pydantic import BaseModel
 from pypdf import PdfReader
 
 from llmpdf import util
+
+
+class Result(BaseModel):
+    """A search result."""
+
+    document: str
+    page: str
 
 
 class Database:
@@ -20,6 +30,12 @@ class Database:
             model_name=self.embedding_model,
         )
 
+    def _get(self, collection_name: str):
+        """Get the collection."""
+        return self.db_client.get_collection(
+            collection_name, embedding_function=self.embedding_fn
+        )
+
     def index(self, collection_name: str, pdf: str):
         """Index PDFs."""
         coll = self.db_client.get_or_create_collection(
@@ -34,6 +50,18 @@ class Database:
 
             coll.add(documents=text, ids=str(id), metadatas=metadata)
 
+    def search(self, collection_name: str, query: str) -> List[Result]:
+        """Search the database."""
+        coll = self._get(collection_name)
+        res = coll.query(query_texts=query, n_results=3)
+        documents = res["documents"][0] if res["documents"] else []
+        metadatas = res["metadatas"][0] if res["metadatas"] else []
+        results = [
+            Result(document=document, page=str(metadata["page"]))
+            for (document, metadata) in zip(documents, metadatas)
+        ]
+        return results
+
     def delete(self, collection_name: str):
         """Reset the database."""
         try:
@@ -47,10 +75,10 @@ class Database:
             collections = self.db_client.list_collections()
             return [c.name for c in collections]
         else:
-            coll = self.db_client.get_collection(collection_name)
+            coll = self._get(collection_name)
             return coll.peek(limit=limit)["documents"] or []
 
     def count(self, collection_name: str):
         """Count the number of documents in the collection."""
-        coll = self.db_client.get_collection(collection_name)
+        coll = self._get(collection_name)
         return coll.count()
