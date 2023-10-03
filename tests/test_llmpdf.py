@@ -1,8 +1,6 @@
 from pathlib import Path
 
-import pytest
-
-from llmpdf.llmpdf import expand_globs
+from llmpdf.main import expand_globs
 
 
 def test_expand_globs(tmp_path: Path):

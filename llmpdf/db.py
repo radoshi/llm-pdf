@@ -41,7 +41,7 @@ class Database:
         except ValueError:
             pass
 
-    def list(self, collection_name: str | None = None, limit: int = 10) -> list[str]:
+    def list(self, collection_name: str | None = None, limit: int = 5) -> list[str]:
         """List collections or documents in the collection."""
         if collection_name is None:
             collections = self.db_client.list_collections()

@@ -51,7 +51,7 @@ class Summarizer:
 
     def summarize(self) -> Tuple[str, float]:
         """Summarize the text. Return the text and the cost."""
-        (input_tokens, output_tokens) = self.estimate_tokens()
+        input_tokens, _ = self.estimate_tokens()
         if input_tokens + self.settings.max_tokens < 8000:
             return self.zero_shot()
 

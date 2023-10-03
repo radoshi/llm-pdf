@@ -1,14 +1,16 @@
 from pathlib import Path
 from typing import List
+from urllib.parse import urlparse
 
 import click
 from rich.console import Console
 from rich.progress import track
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 
 from llmpdf import __version__, util
 from llmpdf.ai import Summarizer
 from llmpdf.db import Database
+from llmpdf.download import Arxiv
 
 settings = util.Settings()
 console = Console()
@@ -35,7 +37,7 @@ def main(gpt_4: bool):
     pass
 
 
-@main.command()
+@main.command(name="list")
 @click.option(
     "-c",
     "--collection",
@@ -44,7 +46,7 @@ def main(gpt_4: bool):
     type=str,
     help="Name of the collection.",
 )
-def list(collection_name: str):
+def ls(collection_name: str):
     """Reset the collection."""
     database = Database()
     results = database.list(collection_name)
@@ -99,6 +101,70 @@ def index(
     for pdf in track(pdfs):
         if not dry_run:
             database.index(collection_name, pdf)
+
+
+@main.command()
+@click.option(
+    "-c",
+    "--collection",
+    "collection_name",
+    type=str,
+    required=True,
+    help="Name of the collection.",
+)
+@click.option("-n", "--dry-run", is_flag=True, default=False, help="Dry run.")
+@click.argument("query", nargs=-1, type=str)
+def arxiv(
+    collection_name: str,
+    query: List[str],
+    dry_run: bool,
+):
+    """Download and index a paper from arxiv."""
+    query_str = " ".join(query)
+
+    downloader = Arxiv()
+    database = Database()
+
+    if query_str.startswith("http"):
+        # If query_str is an arxiv url of the type http://arxiv.org/abs/2107.05580v1
+        # or of the type http://arxiv.org/abs/quant-ph/0201082v1
+        # extract an id which is the part of the URL after /abs/
+        parsed_url = urlparse(query_str)
+        if parsed_url.netloc == "arxiv.org" and parsed_url.path.startswith("/abs/"):
+            arxiv_id = parsed_url.path.split("/abs/")[1]
+
+            with console.status(f"Downloading {arxiv_id}..."):
+                if not dry_run:
+                    file_path = downloader.download(arxiv_id)
+                else:
+                    file_path = "dummy.pdf"
+
+            with console.status(f"Indexing {file_path}..."):
+                if not dry_run:
+                    database.index(collection_name, file_path)
+        else:
+            console.print("Invalid arxiv URL.")
+            return
+    else:
+        with console.status("[bold green]Searching arXiv..."):
+            results = list(downloader.search(query_str))
+        console.print(
+            "\n".join([f"{idx}. {result.title}" for idx, result in enumerate(results)])
+        )
+        choices = list(str(i) for i in range(len(results)))
+        choice = Prompt.ask("Choose a paper", choices=choices)
+        result = results[int(choice)]
+
+        with console.status(f"Downloading {result.title}..."):
+            if not dry_run:
+                file_path = result.download_pdf(dirpath=str(downloader.download_dir))
+                console.print(f"Downloaded {file_path}")
+            else:
+                file_path = "dummy.pdf"
+
+        with console.status(f"Indexing {file_path}..."):
+            if not dry_run:
+                database.index(collection_name, file_path)
 
 
 # @main.command()
