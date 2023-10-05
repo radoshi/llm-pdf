@@ -1,6 +1,7 @@
 from typing import List
 
 import chromadb
+from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
 from pydantic import BaseModel
 from pypdf import PdfReader
@@ -24,17 +25,25 @@ class Database:
         """Initialize the database."""
         settings = util.Settings()
         chroma_dir = settings.chroma_dir
-        self.db_client = chromadb.PersistentClient(path=str(chroma_dir))
+        self.db_client = chromadb.PersistentClient(
+            path=str(chroma_dir), settings=ChromaSettings(anonymized_telemetry=False)
+        )
         self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
             api_key=settings.openai_api_key,
             model_name=self.embedding_model,
         )
 
-    def _get(self, collection_name: str):
+    def _get_collection(self, collection_name: str) -> chromadb.Collection:
         """Get the collection."""
         return self.db_client.get_collection(
             collection_name, embedding_function=self.embedding_fn
         )
+
+    def get_pages(self, collection_name: str, pages: List[str]) -> List[str]:
+        """Get pages by page number."""
+        coll = self._get_collection(collection_name)
+        result = coll.get(ids=pages)
+        return result["documents"] or []
 
     def index(self, collection_name: str, pdf: str):
         """Index PDFs."""
@@ -52,7 +61,7 @@ class Database:
 
     def search(self, collection_name: str, query: str) -> List[Result]:
         """Search the database."""
-        coll = self._get(collection_name)
+        coll = self._get_collection(collection_name)
         res = coll.query(query_texts=query, n_results=3)
         documents = res["documents"][0] if res["documents"] else []
         metadatas = res["metadatas"][0] if res["metadatas"] else []
@@ -75,10 +84,10 @@ class Database:
             collections = self.db_client.list_collections()
             return [c.name for c in collections]
         else:
-            coll = self._get(collection_name)
+            coll = self._get_collection(collection_name)
             return coll.peek(limit=limit)["documents"] or []
 
     def count(self, collection_name: str):
         """Count the number of documents in the collection."""
-        coll = self._get(collection_name)
+        coll = self._get_collection(collection_name)
         return coll.count()

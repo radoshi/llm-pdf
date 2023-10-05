@@ -2,6 +2,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from typing import List
+
 BASE_DIR = Path("~/.llm-pdf").expanduser()
 SETTINGS_FILE = BASE_DIR / "settings.env"
 CHROMA_DIR = BASE_DIR / "chroma"
@@ -22,3 +24,16 @@ class Settings(BaseSettings):
 
     chroma_dir: Path = CHROMA_DIR
     base_dir: Path = BASE_DIR
+
+
+def parse_pages(pages_str: str) -> List[str]:
+    """Parse the pages string."""
+    pages = []
+    for page in pages_str.split(","):
+        if "-" in page:
+            start, end = page.split("-")
+            pages.extend([str(i) for i in range(int(start), int(end) + 1)])
+        else:
+            pages.append(page)
+
+    return pages

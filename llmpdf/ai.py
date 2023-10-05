@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Tuple
+from typing import Any, List, Tuple
 
 import openai
 import tiktoken
@@ -19,19 +19,26 @@ COST_TABLE = {
 
 
 class AINode(ABC):
-    def __init__(self, collection_name: str):
+    def __init__(self, collection_name: str, pages: List[str] | None = None):
         self.settings = util.Settings()
         self.collection_name = collection_name
         self.database = db.Database()
         self.cost = 0.0
+        self.pages = pages
 
     def estimate_tokens(self) -> Tuple[int, int]:
         """Estimate the number of tokens in the input and output."""
         enc = tiktoken.encoding_for_model(self.settings.model)
-        num_pages = self.database.count(self.collection_name)
-        pages = self.database.list(self.collection_name, limit=num_pages)
+
+        if self.pages:
+            # Retrieve the pages from the database and count the tokens
+            docs = self.database.get_pages(self.collection_name, self.pages)
+        else:
+            num_pages = self.database.count(self.collection_name)
+            docs = self.database.list(self.collection_name, limit=num_pages)
+
         return (
-            sum([len(enc.encode(page)) for page in pages]),
+            sum([len(enc.encode(doc)) for doc in docs]),
             self.settings.max_tokens,
         )
 
@@ -60,7 +67,10 @@ TEXT:
 
     def zero_shot(self) -> Tuple[str, float]:
         """Summarize the text in one go."""
-        text = "".join(self.database.list(self.collection_name))
+        if self.pages:
+            text = "".join(self.database.get_pages(self.collection_name, self.pages))
+        else:
+            text = "".join(self.database.list(self.collection_name))
         prompt = self.ZERO_SHOT_PROMPT.strip().format(text=text)
 
         openai.api_key = self.settings.openai_api_key

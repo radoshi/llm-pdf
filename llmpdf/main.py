@@ -208,9 +208,19 @@ def chat(collection_name: str):
     required=True,
     help="Name of the collection.",
 )
-def summarize(collection_name: str):
+@click.option(
+    "-p",
+    "--pages",
+    "pages_str",
+    type=str,
+    required=False,
+    help="List or range of pages to summarize. eg. 1,2,3 or 1-3",
+)
+def summarize(collection_name: str, pages_str: str):
     """Chat with your PDFs."""
-    summarizer = Summarizer(collection_name=collection_name)
+    pages = util.parse_pages(pages_str) if pages_str else None
+
+    summarizer = Summarizer(collection_name=collection_name, pages=pages)
     if not Confirm.ask(
         f"Summarization will cost {sum(summarizer.estimate_tokens())} tokens and ${summarizer.calculate_cost():.2f}. Continue?",  # noqa: E501
         default=False,

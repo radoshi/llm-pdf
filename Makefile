@@ -14,3 +14,7 @@ release:
 	@git tag `poetry version -s --no-ansi`
 	@git push --tags
 	@gh release create `poetry version -s --no-ansi` --title `poetry version -s --no-ansi` --notes ""
+
+test:
+	@echo "Running tests..."
+	@poetry run pytest 
